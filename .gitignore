@@ -1,0 +1,10 @@
+data/salicon/images/**
+data/salicon/fixations/**
+data/salicon/maps/**
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+.*weights
+yolov3.weights
