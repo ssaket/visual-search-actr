@@ -17,6 +17,7 @@ class YoloWorker(Process):
 
         #load models
         import yolov3, csv
+        # download file from https://pjreddie.com/media/files/yolov3.weights
         yolo = yolov3.yolov3('yolov3.weights')
 
         print('yoloV3 init done', self._gpuid)
