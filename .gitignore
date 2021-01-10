@@ -8,3 +8,4 @@ __pycache__/
 *$py.class
 .*weights
 yolov3.weights
+*.DS_Store
