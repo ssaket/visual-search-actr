@@ -24,7 +24,7 @@ if __name__ == "__main__":
         dir_path = args.dir
     
     # read csv files into dataframs and concat them
-    dfs = [ process_file(os.path.join(root, file)) for root, dirs, files in os.walk(dir_path) for file in files]
+    dfs = [ process_file(os.path.join(root, file)) for root, dirs, files in os.walk(dir_path) for file in files if file.endswith('csv') and file.startswith('detected')]
     df_new = pd.concat(dfs, ignore_index=True).groupby(['image'])
 
     total_rows = []

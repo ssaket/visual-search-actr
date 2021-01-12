@@ -128,8 +128,8 @@ def calc_obj_info(split_string):
         width = right_X - left_X
         height = bottom_Y - top_Y
         area = width*height
-        tmp_var = prob/2000
-        delay = -math.log(float(tmp_var))
+        tmp_var = prob/100
+        delay = math.tanh(tmp_var)*3 #-math.log(float(tmp_var))
         object_info.append([object_type, prob, mid_X, mid_Y, area, delay])
     return object_info
 
@@ -185,7 +185,7 @@ if __name__ == "__main__":
         filepath = os.path.join('data', 'salicon/detected', 'salicon_detected_objects.csv')
 
     df = read_obj_log_file(filepath)
-    # df =  pd.read_csv('C:\\Users\\sktsa\\Projects\\Keras-Multiple-Process-Prediction-master\\salicon_val_detected_actr.csv')
+    # df =  pd.read_csv(os.path.join('data', 'salicon/simulations','salicon_actrp.csv'))
     # npa = df['object_info'].to_numpy()
 
     # vfunc = np.vectorize(run_simulations)
@@ -194,7 +194,14 @@ if __name__ == "__main__":
     #     run_simulations(am, (640,480))
     # df['actr_data'] = pd.Series()
     
+    # run actr simulations
     df['actr_data'] = df.progress_apply(lambda x: run_simulations(x['object_info'], (640, 480)), axis=1)
+    # write data to temporary file; 
+    df.to_csv(os.path.join('data', 'salicon/simulations','salicon_actr_temp.csv'), index=False)
+    # read the temporary file
+    df =  pd.read_csv(os.path.join('data', 'salicon/simulations','salicon_actr_temp.csv'))
     df['actr_data_processed'] = df.progress_apply(lambda x: process_actr_data(x['actr_data']), axis=1)
     df.info()
-    df.to_csv(os.path.join('data', 'salicon/simuations','salicon_actr.csv'), index=False)
+    df.to_csv(os.path.join('data', 'salicon/simulations','salicon_actrp.csv'), index=False)
+    # delete temporary file
+    os.remove(os.path.join('data', 'salicon/simulations','salicon_actr_temp.csv'))
