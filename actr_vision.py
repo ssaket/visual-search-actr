@@ -108,7 +108,7 @@ if __name__ == "__main__":
             "remote", "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator",
             "book", "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"]
 
-    stim_d = {key: {'text': x, 'position': (random.randint(10,630), random.randint(10, 310)), 'vis_delay': 10} for key, x in enumerate(random.sample(labels, random.randint(2,9)))}
+    stim_d = {key: {'text': x, 'position': (random.randint(10,630), random.randint(10, 310)), 'vis_delay': 3.12} for key, x in enumerate(random.sample(labels, random.randint(2,9)))}
     #stim_d = {key: {'text': x, 'position': (random.randint(10,630), random.randint(10, 310))} for key, x in enumerate(string.ascii_uppercase)}
     print(stim_d)
     aspect_ratio = (640, 480)

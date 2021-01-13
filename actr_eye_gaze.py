@@ -112,6 +112,14 @@ class Model(object):
         isa _visuallocation
         screen_x closest""")
 
+def activation(a, b):
+    # print(a,b)
+    noise = np.random.normal(0.0, 0.1, 1)[0]
+    # normalize area between -50 to 50
+    b = (b/25 - 1)*100 
+    val = math.exp(math.tanh(a)) + 1/(1 + math.exp((-b/20)))
+    return val + noise
+
 def calc_obj_info(split_string):
     object_info = []
     for obj in ast.literal_eval(split_string): 
@@ -128,8 +136,7 @@ def calc_obj_info(split_string):
         width = right_X - left_X
         height = bottom_Y - top_Y
         area = width*height
-        tmp_var = prob/100
-        delay = math.tanh(tmp_var)*3 #-math.log(float(tmp_var))
+        delay = activation(prob/100, math.sqrt(area)) #math.tanh(tmp_var)*3 #-math.log(float(tmp_var))
         object_info.append([object_type, prob, mid_X, mid_Y, area, delay])
     return object_info
 
