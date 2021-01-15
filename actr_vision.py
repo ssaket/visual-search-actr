@@ -10,7 +10,7 @@ class Model(object):
     Model searching and attending to various stimuli.
     """
 
-    def __init__(self, env, **kwargs):
+    def __init__(self, env, target, **kwargs):
         self.m = actr.ACTRModel(environment=env, **kwargs)
 
         actr.chunktype("pair", "probe answer")
@@ -73,6 +73,22 @@ class Model(object):
         screen_pos =visual_location
         ~visual_location>""")
 
+        if target:
+            self.m.productionstring(name="find_target_probe", string="""
+            =g>
+            isa     goal
+            state   reading
+            =visual>
+            isa     _visual
+            value   {}
+            ==>
+            =g>
+            isa     goal
+            state   free
+            +visual_location>
+            isa _visuallocation
+            screen_x closest""".format(target))
+
 
         self.m.productionstring(name="encode_probe_and_find_new_location", string="""
         =g>
@@ -108,17 +124,20 @@ if __name__ == "__main__":
             "remote", "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator",
             "book", "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"]
 
-    stim_d = {key: {'text': x, 'position': (random.randint(10,630), random.randint(10, 310)), 'vis_delay': 3.12} for key, x in enumerate(random.sample(labels, random.randint(2,9)))}
+    stim_d = {key: {'text': x, 'position': (random.randint(10,630), random.randint(10, 310)), 'vis_delay': 0.12} for key, x in enumerate(random.sample(labels, random.randint(2,9)))}
     #stim_d = {key: {'text': x, 'position': (random.randint(10,630), random.randint(10, 310))} for key, x in enumerate(string.ascii_uppercase)}
     print(stim_d)
     aspect_ratio = (640, 480)
+    target = stim_d[random.sample(list(stim_d), 1)[0]]
+    print(target['text'])
     #text = [{1: {'text': 'X', 'position': (10, 10)}, 2: {'text': 'Y', 'position': (10, 20)}, 3:{'text': 'Z', 'position': (10, 30)}},{1: {'text': 'A', 'position': (50, 10)}, 2: {'text': 'B', 'position': (50, 180)}, 3:{'text': 'C', 'position': (400, 180)}}]
     environ = actr.Environment(focus_position=(0,0), size=aspect_ratio, simulated_display_resolution=aspect_ratio,  simulated_screen_size=(60, 34), viewing_distance=60)
-    m = Model(environ, subsymbolic=True, emma=True, latency_factor=0.4, decay=0.5, retrieval_threshold=-2, instantaneous_noise=0, automatic_visual_search=True, eye_mvt_scaling_parameter=0.05, eye_mvt_angle_parameter=10) #If you don't want to use the EMMA model, specify emma=False in here
+    m = Model(environ, target=target['text'], subsymbolic=True, emma=True, latency_factor=0.4, decay=0.5, retrieval_threshold=-2, instantaneous_noise=0, automatic_visual_search=False, eye_mvt_scaling_parameter=0.05, eye_mvt_angle_parameter=10) #If you don't want to use the EMMA model, specify emma=False in here
     sim = m.m.simulation(realtime=True, trace=True,  gui=True, environment_process=environ.environment_process, stimuli=stim_d, triggers='X', times=50)
     sim.run(10)
     check = 0
     for key in m.dm:
+        print(key.typename, m.dm[key])
         if key.typename == '_visual':
             print(key, m.dm[key])
             check += 1
