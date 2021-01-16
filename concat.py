@@ -34,7 +34,11 @@ if __name__ == "__main__":
         total_rows.append([group_name, new_row])
 
     print("total number of row: %s" %len(total_rows))
-    csv_file = os.path.join(dir_path, outfile)
+
+    dir = os.path.join(dir_path,  'concat')
+    if not os.path.exists(dir):
+        os.makedirs(dir)
+    csv_file = os.path.join(dir, outfile)
 
     with open(csv_file, mode='w', newline='', encoding='utf-8') as afile: 
         file_writer = csv.writer(afile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)

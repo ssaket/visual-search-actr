@@ -156,14 +156,14 @@ def process_actr_data(cmd_str):
         gaze_data.append([screen_x, screen_y, gaze])
     return gaze_data
 
-def run_simulations(list_of_obj, aspect_ratio=(640, 480), targ=None ,log_file='actr_simulations.log'):
+def run_simulations(list_of_obj, aspect_ratio=(640, 480), targ=None, focus=None, log_file='actr_simulations.log'):
     oldstd = sys.stdout
     stim_d = {key: {'text':x[0], 'position': (x[2], x[3]), 'vis_delay': x[5]} for key,x in enumerate(sorted(list_of_obj, key=lambda objs: objs[4],reverse=True))}
     sys.stdout = bf = StringIO()
 
-    print("Running Simulation for target %s"%(targ))
-    environ = actr.Environment(size=aspect_ratio, simulated_display_resolution=aspect_ratio, simulated_screen_size=(60, 34), viewing_distance=60)
-    m = Model(environ, target=targ ,subsymbolic=True, latency_factor=0.4, decay=0.5, retrieval_threshold=-2, instantaneous_noise=0, automatic_visual_search=True, 
+    print("****Running Simulation for target %s with initial focus at %s" %(targ, focus))
+    environ = actr.Environment(focus_position=focus, size=aspect_ratio, simulated_display_resolution=aspect_ratio, simulated_screen_size=(60, 34), viewing_distance=60)
+    m = Model(environ, target=targ ,subsymbolic=True, latency_factor=0.4, decay=0.5, retrieval_threshold=-2, instantaneous_noise=0, automatic_visual_search=False, 
     eye_mvt_scaling_parameter=0.05, eye_mvt_angle_parameter=10, emma_landing_site_noise=True, emma=True) #If you don't want to use the EMMA model, specify emma=False in here
     sim = m.m.simulation(realtime=False, trace=True,  gui=False, environment_process=environ.environment_process, stimuli=stim_d, triggers='X', times=1)
     sim.run(10)
@@ -179,6 +179,8 @@ def run_simulations(list_of_obj, aspect_ratio=(640, 480), targ=None ,log_file='a
         if key.typename == '_visual':
             print(key, m.dm[key])
             check += 1
+    if target:
+        print(key, m.dm[key])
     sys.stdout = oldstd
     # print("sim objects", len(stim_d))
     # print("count ", check)
@@ -199,7 +201,11 @@ if __name__ == "__main__":
     # read arguments from the command line
     args = parser.parse_args()
     filepath = args.path if args.path else os.path.join('data', 'salicon/detected', 'salicon_detected_objects.csv')
+    # filepath = args.path if args.path else os.path.join('data', 'coco_search_18/detected/concat', 'coco_detected_objects.csv')
     target =  args.target if args.target else None
+    # target = "bottle"
+    display_size = (640, 480)
+    focus = (int(display_size[0]/2), int(display_size[1]/2))  if args.target else None
 
     df = read_obj_log_file(filepath)
     # df =  pd.read_csv(os.path.join('data', 'salicon/simulations','salicon_actrp.csv'))
@@ -207,12 +213,14 @@ if __name__ == "__main__":
 
     # vfunc = np.vectorize(run_simulations)
     # vfunc(npa)
-    # for am in npa:
-    #     run_simulations(am, (640,480))
+    # for i in range(1):
+    #     am = npa[151]
+    #     a = run_simulations(am, (640,480), target, focus)
+    #     process_actr_data(str(a))
     # df['actr_data'] = pd.Series()
     
     # run actr simulations
-    df['actr_data'] = df.progress_apply(lambda x: run_simulations(x['object_info'], (640, 480), target), axis=1)
+    df['actr_data'] = df.progress_apply(lambda x: run_simulations(x['object_info'], display_size, target, focus), axis=1)
     # write data to temporary file; 
     df.to_csv(os.path.join(os.path.dirname(filepath), 'actr_temp.csv'), index=False)
     # read the temporary file
