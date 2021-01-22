@@ -22,7 +22,7 @@ def read_coco_json(filepath):
 
 def find_coco_target(coco_dicts, target, name, split=None):
     res = []
-    for cdi in coco_gth:
+    for cdi in coco_dicts:
         for obj in cdi:
             if obj['task'] == target and obj['name'] == name:
                 if split and obj['split'] == split:
@@ -132,37 +132,22 @@ def plot_result(n_arr, target, subject='all', name='all', bins=20):
     ax[2].set_xticklabels(['x-diff', 'y-diff', 'time-diff']) 
     plt.show()
 
-def plot_time_diff(gtagg, clagg):
+def time_diff(gtagg, clagg):
 
     if(gtagg.size == 0):
-        return
-    fig, ax = plt.subplots(1,1, tight_layout=True)
+        gtagg = np.zeros(clagg.shape)
+        # return 'no value'
+    
     y1 = gtagg[:,2]
     x1 = np.arange(len(y1))
     y2 = clagg[:,2]*1000
     x2 = np.arange(len(y2))
 
-    ax.plot(x1, y1, c='tab:orange', label='base')
-    ax.plot(x2, y2, c='tab:blue', label='our')
-    ax.legend()
-    plt.show()
+    return [y1, y2]
 
 
-if __name__ == "__main__":
+def start_processing(target, coco_file, coco_fixs):
 
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument("--dir", "-d", help="path to simulations")
-    parser.add_argument("--target", "-t", help="name of target probe")
-
-    # read arguments from the command line
-    args = parser.parse_args()
-
-    target = args.target
-    coco_dir = os.path.join(args.dir, target)
-    coco_file = os.path.join(coco_dir, 'actr_aggr_sim_%s.csv'%(target))
-    coco_fixs = [ os.path.join('data', 'coco_search_18', f) for f in os.listdir(os.path.join('data', 'coco_search_18')) if f.endswith('.json') ]
-    
     df = pd.read_csv(coco_file)
     
     display_size = {
@@ -182,12 +167,12 @@ if __name__ == "__main__":
         if len(np.where(df['name_0'] != df[names[i+1]])) == 1:
             df = df.drop(columns=[names[i+1]])
 
-    df.info()
+    # df.info()
     coco_gth = [read_coco_json(fl) for fl in coco_fixs ]
     df['gtruth'] = df.progress_apply(lambda x: find_coco_target(coco_gth, target, x['name_0']), axis=1)
     df['gtruth_aggr'] = df.progress_apply(lambda x: find_agg_gtruth(x['gtruth']), axis=1)
 
-    df.progress_apply(lambda x: plot_time_diff(x['gtruth_aggr'], x['agg_res']), axis=1)
+    tdiffs = df.progress_apply(lambda x: time_diff(x['gtruth_aggr'], x['agg_res']), axis=1)
    
     diffs = df.progress_apply(lambda x: compare_agg_diff(x['gtruth_aggr'], x['agg_res']), axis=1).to_numpy()
 
@@ -199,15 +184,59 @@ if __name__ == "__main__":
     
     plot_result(n_arr, target)
     # df.progress_apply(lambda x: compare_sub_diff(target, x[columns[:-1]], x['gtruth'], x['name_0']), axis=1)
-    df['multimatch'] = df.progress_apply(lambda x: cmp_multimatch(target, x[columns[:-1]], x['gtruth'], x['name_0'], display_size['coco-search-18']), axis=1)
-    mps = df['multimatch'].to_numpy()
-    n_arr = np.empty([0,5])
-    for mp in mps:
-        n_arr = np.vstack((n_arr, mp))
+    # df['multimatch'] = df.progress_apply(lambda x: cmp_multimatch(target, x[columns[:-1]], x['gtruth'], x['name_0'], display_size['coco-search-18']), axis=1)
+    # mps = df['multimatch'].to_numpy()
+    # n_arr = np.empty([0,5])
+    # for mp in mps:
+    #     n_arr = np.vstack((n_arr, mp))
     
-    plot_multimatch("Multimatch for target %s for all subjects for all images"%(target), n_arr, 100)
-    multimatch_score = np.nanmean(n_arr)
-    print("done score is ", multimatch_score)
+    # plot_multimatch("Multimatch for target %s for all subjects for all images"%(target), n_arr, 100)
+    # multimatch_score = np.nanmean(n_arr)
+    # print("done score is ", multimatch_score)
+
+    nt_arr = np.empty([0, 3])
+    for i, arr in enumerate(tdiffs):
+        if not isinstance(arr, str):
+            lnt = len(arr[0]) if len(arr[0]) > len(arr[1]) else len(arr[1])
+            arp = np.zeros([lnt, 3])
+            arp[:len(arr[0]),0] = arr[0]
+            arp[:len(arr[1]),1] = arr[1]
+            arp[:,2] = np.full((lnt), i)
+            nt_arr = np.vstack((nt_arr, arp))
+
+    fig, ax = plt.subplots(1,1, tight_layout=False)
+    ax.set_title("Fixation duration of all images for target %s"%(target))
+    ax.plot(nt_arr[:,0], c='tab:orange', label='base', alpha=0.5)
+    ax.plot(nt_arr[:,1], c='tab:blue', label='our', alpha=0.5)
+    ax.legend()
+
+    plt.tick_params(
+    axis='x',          # changes apply to the x-axis
+    which='both',      # both major and minor ticks are affected
+    bottom=False,      # ticks along the bottom edge are off
+    top=False,         # ticks along the top edge are off
+    labelbottom=False)
+
+    plt.show()
+
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--dir", "-d", help="path to simulations")
+    parser.add_argument("--target", "-t", help="name of target probe")
+
+    # read arguments from the command line
+    args = parser.parse_args()
+
+    target = args.target
+    coco_dir = os.path.join(args.dir, target)
+    coco_file = os.path.join(coco_dir, 'actr_aggr_sim_%s.csv'%(target))
+    coco_fixs = [ os.path.join('data', 'coco_search_18', f) for f in os.listdir(os.path.join('data', 'coco_search_18')) if f.endswith('.json') ]
+
+    start_processing(target, coco_file, coco_fixs)
+    
 
     
   
