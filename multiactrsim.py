@@ -117,11 +117,12 @@ class Model(object):
         +visual_location>
         isa _visuallocation
         screen_x closest""")
-
+xmnb = []
 def activation(a, b):
     # normalize area between -50 to 50
     b = (b/25 - 1)*100 
     val = math.exp(math.tanh(a)) + 1/(1 + math.exp((-b/20)))
+    xmnb.append(val)
     return val
 
 def calc_obj_info(split_string, delay_noise=0, fixation_noise=0):
@@ -221,15 +222,13 @@ def sim_worker(sub_id, imgs, outpath, display_size, target, focus, bias):
 
     print("starting process for subject %s"%(sub_id))
     
-    path = os.path.join(outpath, 'worker')
-    if not os.path.exists(path):
-        os.makedirs(path)
-    
+    path = os.path.join(outpath, 'worker')    
     logdir = os.path.join(outpath, 'logs')
+    
     if not os.path.exists(logdir):
         os.makedirs(logdir)
 
-    logfile = os.path.join(logdir, 'actr_simulations_%s.log'%(sub_id)))
+    logfile = os.path.join(logdir, 'actr_simulations_%s.log'%(sub_id))
 
     df = pd.DataFrame(data=imgs, index=range(len(imgs)), columns=['name','object_info'])
     # df.info()
@@ -278,10 +277,21 @@ if __name__ == "__main__":
     # gaussian noise for encoding time and fixations for each subject
     params = {
         'delay': np.append(np.random.normal(0, 0.1, subjects-1), 0),
-        'fixation': np.append(np.random.normal(0, 50, subjects-1), 0)
+        'fixation': np.append(np.random.normal(0, 50, subjects-1), 0),
     }
 
+    root = os.path.join(outpath, 'worker')
+    if not os.path.exists(root):
+        os.makedirs(root)
+    else:
+        for fl in os.listdir(root):
+            os.remove(os.path.join(root, fl), )
+
     dfs = [get_actr_obj(filepath, subject, params) for subject, param in enumerate(range(subjects))]
+    import matplotlib.pyplot as plt
+    plt.boxplot(xmnb)
+    plt.show()
+
     imgs = [df.to_numpy() for df in dfs]
 
     processes = [ Process(target=sim_worker, args=(sub_id, imgs[sub_id], outpath, display_size, target, focus, bias)) for sub_id in range(subjects)]
@@ -292,10 +302,6 @@ if __name__ == "__main__":
     # Exit the completed processes
     for p in processes:
         p.join()
-
-    root = os.path.join(outpath, 'worker')
-    if not os.path.isdir(root):
-        os.makedirs(root)
 
     columns = [ 'sub_%s'%(sub) for sub in range(subjects)]
     pds = [ pd.read_csv(os.path.join(root, f), skipinitialspace=True, usecols=['name', 'actr_data_processed']) for f in os.listdir(root)]
