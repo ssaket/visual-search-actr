@@ -11,3 +11,5 @@ __pycache__/
 yolov3.weights
 *.DS_Store
 .vscode
+actr_simulations.log
+*.log
