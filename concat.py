@@ -15,7 +15,7 @@ if __name__ == "__main__":
     # read arguments from the command line
     args = parser.parse_args()
     # default values
-    outfile='salicon_detected_objects.csv'
+    outfile='detected_objects.csv'
     dir_path="data/salicon/detected"
 
     if args.outputfile:
@@ -24,7 +24,7 @@ if __name__ == "__main__":
         dir_path = args.dir
     
     # read csv files into dataframs and concat them
-    dfs = [ process_file(os.path.join(root, file)) for root, dirs, files in os.walk(dir_path) for file in files if file.endswith('csv') and file.startswith('detected')]
+    dfs = [ process_file(os.path.join(dir_path, file)) for file in os.listdir(dir_path) if file.endswith('csv')]
     df_new = pd.concat(dfs, ignore_index=True).groupby(['image'])
 
     total_rows = []

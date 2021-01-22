@@ -60,6 +60,7 @@ if __name__ == "__main__":
     parser.add_argument("--imgpath", help="path to images to be proceed")
     parser.add_argument("--gpuids",  type=str, help="gpu ids to run" )
     parser.add_argument("--outpath",  type=str, help="path to output folder" )
+    parser.add_argument("--target",  type=str, help="target for coco-search-18" )
 
     args = parser.parse_args()
 
@@ -70,6 +71,10 @@ if __name__ == "__main__":
     
     if not args.outpath:
         args.outpath = args.imgpath
+    if args.target:
+        args.outpath = os.path.join(args.outpath, args.target)
+        if not os.path.isdir(args.outpath):
+            os.makedirs(args.outpath)
 
     run(args.imgpath, gpuids, args.outpath)
     
