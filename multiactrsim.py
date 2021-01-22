@@ -22,7 +22,7 @@ class Model(object):
     Model searching and attending to various stimuli.
     """
 
-    def __init__(self, env, target=None, **kwargs):
+    def __init__(self, env, target=None, skipifsmall=False, **kwargs):
         self.m = actr.ACTRModel(environment=env, **kwargs)
 
         actr.chunktype("pair", "probe answer")
@@ -85,7 +85,7 @@ class Model(object):
         screen_pos =visual_location
         ~visual_location>""")
 
-        if target:
+        if target and not skipifsmall:
             self.m.productionstring(name="find_target_probe", string="""
             =g>
             isa     goal
@@ -117,12 +117,13 @@ class Model(object):
         +visual_location>
         isa _visuallocation
         screen_x closest""")
-xmnb = []
+
 def activation(a, b):
     # normalize area between -50 to 50
-    b = (b/25 - 1)*100 
-    val = math.exp(math.tanh(a)) + 1/(1 + math.exp((-b/20)))
-    xmnb.append(val)
+    val = a*b
+    val = -np.log(val)
+    # b = (b/25 - 1)*100 
+    # val = math.exp(math.tanh(a)) + 1/(1 + math.exp((-b/20)))
     return val
 
 def calc_obj_info(split_string, delay_noise=0, fixation_noise=0):
@@ -146,8 +147,20 @@ def calc_obj_info(split_string, delay_noise=0, fixation_noise=0):
         width = right_X - left_X
         height = bottom_Y - top_Y
         area = width*height
-        delay = activation(prob/100, math.sqrt(area)) + delay_noise #math.tanh(tmp_var)*3 #-math.log(float(tmp_var))
-        object_info.append([object_type, prob, mid_X, mid_Y, area, delay])
+        # delay = activation(prob/100, math.sqrt(area)) + delay_noise #math.tanh(tmp_var)*3 #-math.log(float(tmp_var))
+        # xmnb.append(delay)
+        object_info.append([object_type, prob, mid_X, mid_Y, area])
+    
+    obj = np.array(object_info)
+    areas = obj[:, 4].astype(np.float)
+    probab = obj[:, 1].astype(np.float)/100 
+    areas_norm = areas / np.linalg.norm(areas)
+    probab_norm = probab / np.linalg.norm(probab)
+
+    delays = activation(probab_norm, areas_norm)
+    for i, delay in enumerate(delays):
+        object_info[i].append(delay)
+    # print(object_info)
     return object_info
 
 def cal_diff(x):
@@ -182,14 +195,21 @@ def process_actr_data(cmd_str):
 
 def run_simulations(list_of_obj, aspect_ratio=(640, 480), targ=None, focus=None, bias=None, log_file='actr_simulations.log'):
     oldstd = sys.stdout
+
     if bias:
-        list_of_obj.insert(0, ['center_bias', 99, bias[0], bias[1], 1000, 0.3])
+        dist = [ np.linalg.norm(np.array([obj[2], obj[3]]) - np.array([bias[0], bias[1]])) for obj in list_of_obj]
+        dist.sort()
+        dist = dist[0]
+        if  dist > 200:
+            list_of_obj.insert(0, ['center_bias', 99, bias[0], bias[1], 1000, 0.3])
+    
     stim_d = {key: {'text':x[0], 'position': (x[2], x[3]), 'vis_delay': x[5]} for key,x in enumerate(sorted(list_of_obj, key=lambda objs: objs[4],reverse=True))}
     sys.stdout = bf = StringIO()
+    skiptgtifsmall = True if len(stim_d) < 4 else False
 
     print("****Running Simulation for target %s with initial focus at %s" %(targ, focus))
     environ = actr.Environment(focus_position=focus, size=aspect_ratio, simulated_display_resolution=aspect_ratio, simulated_screen_size=(60, 34), viewing_distance=60)
-    m = Model(environ, target=targ ,subsymbolic=True, latency_factor=0.4, decay=0.5, retrieval_threshold=-2, instantaneous_noise=0, automatic_visual_search=False, 
+    m = Model(environ, target=targ, skipifsmall=skiptgtifsmall ,subsymbolic=True, latency_factor=0.4, decay=0.5, retrieval_threshold=-2, instantaneous_noise=0, automatic_visual_search=True, 
     eye_mvt_scaling_parameter=0.05, eye_mvt_angle_parameter=10, emma_landing_site_noise=True, emma=True) #If you don't want to use the EMMA model, specify emma=False in here
     sim = m.m.simulation(realtime=False, trace=True,  gui=False, environment_process=environ.environment_process, stimuli=stim_d, triggers='X', times=1)
     sim.run(10)
@@ -224,7 +244,7 @@ def sim_worker(sub_id, imgs, outpath, display_size, target, focus, bias):
     
     path = os.path.join(outpath, 'worker')    
     logdir = os.path.join(outpath, 'logs')
-    
+
     if not os.path.exists(logdir):
         os.makedirs(logdir)
 
@@ -276,8 +296,8 @@ if __name__ == "__main__":
     bias = focus if args.target else None
     # gaussian noise for encoding time and fixations for each subject
     params = {
-        'delay': np.append(np.random.normal(0, 0.1, subjects-1), 0),
-        'fixation': np.append(np.random.normal(0, 50, subjects-1), 0),
+        'delay': np.append(np.random.normal(0, 0.01, subjects-1), 0),
+        'fixation': np.append(np.random.normal(0, 150, subjects-1), 0),
     }
 
     root = os.path.join(outpath, 'worker')
@@ -288,10 +308,6 @@ if __name__ == "__main__":
             os.remove(os.path.join(root, fl), )
 
     dfs = [get_actr_obj(filepath, subject, params) for subject, param in enumerate(range(subjects))]
-    import matplotlib.pyplot as plt
-    plt.boxplot(xmnb)
-    plt.show()
-
     imgs = [df.to_numpy() for df in dfs]
 
     processes = [ Process(target=sim_worker, args=(sub_id, imgs[sub_id], outpath, display_size, target, focus, bias)) for sub_id in range(subjects)]
@@ -323,5 +339,5 @@ if __name__ == "__main__":
     pds['agg_res'] = pds.apply(lambda x: x['agg_res'].tolist(), axis=1)
     for col in columns:
         pds[col] = pds.apply(lambda x: x[col].tolist(), axis=1)
-   
+ 
     pds.to_csv(os.path.join(outpath,'actr_aggr_sim_%s.csv' %(target)), index=False)

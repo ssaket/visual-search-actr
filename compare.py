@@ -121,7 +121,7 @@ def plot_result(n_arr, target, subject='all', name='all', bins=20):
     ax[0].set_xlabel('difference in x')
     ax[0].set_ylabel('difference in y')
 
-    fig.suptitle('Comparision on image %s on target %s for subject %s'%(name, target, subject), fontsize=16)
+    fig.suptitle('Comparision on image %s on target %s for subject %s'%(name, target, subject), fontsize=12)
   
     ax[1].hist(n_arr[:,2], bins=bins)
     ax[1].set_title('Fixations')
@@ -130,6 +130,21 @@ def plot_result(n_arr, target, subject='all', name='all', bins=20):
     ax[2].boxplot(n_arr)
     ax[2].set_title('Variance')
     ax[2].set_xticklabels(['x-diff', 'y-diff', 'time-diff']) 
+    plt.show()
+
+def plot_time_diff(gtagg, clagg):
+
+    if(gtagg.size == 0):
+        return
+    fig, ax = plt.subplots(1,1, tight_layout=True)
+    y1 = gtagg[:,2]
+    x1 = np.arange(len(y1))
+    y2 = clagg[:,2]*1000
+    x2 = np.arange(len(y2))
+
+    ax.plot(x1, y1, c='tab:orange', label='base')
+    ax.plot(x2, y2, c='tab:blue', label='our')
+    ax.legend()
     plt.show()
 
 
@@ -171,6 +186,8 @@ if __name__ == "__main__":
     coco_gth = [read_coco_json(fl) for fl in coco_fixs ]
     df['gtruth'] = df.progress_apply(lambda x: find_coco_target(coco_gth, target, x['name_0']), axis=1)
     df['gtruth_aggr'] = df.progress_apply(lambda x: find_agg_gtruth(x['gtruth']), axis=1)
+
+    df.progress_apply(lambda x: plot_time_diff(x['gtruth_aggr'], x['agg_res']), axis=1)
    
     diffs = df.progress_apply(lambda x: compare_agg_diff(x['gtruth_aggr'], x['agg_res']), axis=1).to_numpy()
 
