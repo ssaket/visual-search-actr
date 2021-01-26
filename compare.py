@@ -184,15 +184,15 @@ def start_processing(target, coco_file, coco_fixs):
     
     plot_result(n_arr, target)
     # df.progress_apply(lambda x: compare_sub_diff(target, x[columns[:-1]], x['gtruth'], x['name_0']), axis=1)
-    # df['multimatch'] = df.progress_apply(lambda x: cmp_multimatch(target, x[columns[:-1]], x['gtruth'], x['name_0'], display_size['coco-search-18']), axis=1)
-    # mps = df['multimatch'].to_numpy()
-    # n_arr = np.empty([0,5])
-    # for mp in mps:
-    #     n_arr = np.vstack((n_arr, mp))
+    df['multimatch'] = df.progress_apply(lambda x: cmp_multimatch(target, x[columns[:-1]], x['gtruth'], x['name_0'], display_size['coco-search-18']), axis=1)
+    mps = df['multimatch'].to_numpy()
+    n_arr = np.empty([0,5])
+    for mp in mps:
+        n_arr = np.vstack((n_arr, mp))
     
-    # plot_multimatch("Multimatch for target %s for all subjects for all images"%(target), n_arr, 100)
-    # multimatch_score = np.nanmean(n_arr)
-    # print("done score is ", multimatch_score)
+    plot_multimatch("Multimatch for target %s for all subjects for all images"%(target), n_arr, 100)
+    multimatch_score = np.nanmean(n_arr)
+    print("done score is ", multimatch_score)
 
     nt_arr = np.empty([0, 3])
     for i, arr in enumerate(tdiffs):
@@ -236,7 +236,3 @@ if __name__ == "__main__":
     coco_fixs = [ os.path.join('data', 'coco_search_18', f) for f in os.listdir(os.path.join('data', 'coco_search_18')) if f.endswith('.json') ]
 
     start_processing(target, coco_file, coco_fixs)
-    
-
-    
-  
