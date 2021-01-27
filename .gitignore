@@ -5,6 +5,7 @@ data/coco_search_18/images/**
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
+results/salicon/
 *.py[cod]
 *$py.class
 .*weights
