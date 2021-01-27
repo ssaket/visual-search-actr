@@ -4,7 +4,7 @@ import os, ast, json
 from matplotlib import colors
 import matplotlib.pyplot as plt
 import multimatch_gaze as m
-from scipy.io import savemat
+from scipy.io import savemat, loadmat
 
 from tqdm import tqdm
 
@@ -183,10 +183,88 @@ def time_diff(gtagg, clagg):
 
     return [y1, y2]
 
+def start_processing_salicon( file, fixs):
+    
+    df = pd.read_csv(file)
+    
+    display_size = {
+        'salicon': (640, 480),
+        'coco-search-18': (1680, 1050)
+    }
+    screensize = display_size['salicon']
+    columns = [ key for key in df.keys() if key.startswith('sub') or key.startswith('agg')]
+    names = [ key for key in df.keys() if key.startswith('name')]
+    
+    for col in columns:
+        df[col] = df[col].apply(ast.literal_eval)
+        df[col] = df[col].apply(np.array)
 
-def start_processing(target, coco_file, coco_fixs):
+    # delete extra name columns
+    for i in range(len(names)-1):
+        if len(np.where(df['name_0'] != df[names[i+1]])) == 1:
+            df = df.drop(columns=[names[i+1]])
 
-    df = pd.read_csv(coco_file)
+    fix_mat = loadmat(fixs)
+    gaze_data = fix_mat['arr_0']
+    indices = [2422, 2800, 2971, 4162, 4697, 1212, 4378, 790, 2768, 835, 2838, 3317, 3755, 4341, 3320, 4396, 4935, 3673, 1334, 4599, 1401, 1427, 3497, 4852, 3441, 2986, 200, 3804, 871, 2751, 774, 1156, 1488, 310, 2692, 143, 452, 4868, 2545, 1999, 2464, 998, 3054, 4797, 4160, 319, 2450, 4356, 4372, 4609]
+    gaze_data = np.delete(gaze_data, indices, 0)
+
+    dt = {'names': ('start_x', 'start_y', 'duration'),'formats': ('f8', 'f8', 'f8')}
+    mscores = np.empty([0, 5])
+    res_aggr = np.empty([0, 6])
+
+    for col in columns[0:-1]:
+        
+        mgdata = df[col].to_numpy()
+
+        for i in range(len(mgdata)):
+            csub = mgdata[i]  / mgdata[i].max(axis=0)
+            clagg = np.zeros(csub.shape[0],  dtype=dt)
+            clagg['start_x'] = csub[:,0]
+            clagg['start_y'] = csub[:,1]
+            clagg['duration'] = csub[:,2]
+
+            cgzdata = gaze_data[i]
+            gtagg =  np.zeros(cgzdata.shape[0],  dtype=dt)
+            gtagg['start_x'] = cgzdata[:,0]
+            gtagg['start_y'] = cgzdata[:,1]
+            gtagg['duration'] =cgzdata[:,2]
+            doc = m.docomparison(clagg, gtagg, screensize=screensize)
+            mscores = np.vstack((mscores, doc))
+
+            shape = (csub.shape[0],3 ) if (csub.shape[0] > cgzdata.shape[0]) else (cgzdata.shape[0], 3)
+
+            clagg = np.zeros(shape)
+            clagg.fill(0.1)
+            clagg[:csub.shape[0],0] =  csub[:,0]
+            clagg[:csub.shape[0],1] =  csub[:,1]
+            clagg[:csub.shape[0],2] =  csub[:,2]
+
+
+            gtagg = np.zeros(shape)
+            gtagg.fill(0.1)
+            gtagg[:cgzdata.shape[0],0] = cgzdata[:,0]
+            gtagg[:cgzdata.shape[0],1] = cgzdata[:,1]
+            gtagg[:cgzdata.shape[0],2] = cgzdata[:,2]
+            
+            doc = np.hstack((clagg, gtagg))
+            res_aggr = np.vstack((res_aggr, doc))
+    
+    
+    mdic = {"data1": res_aggr[:,[0,1,2]], "data2":  res_aggr[:,[3,4,5]], "label": "scanmatch"}
+    filepath = os.path.join('results', 'salicon')
+    if not os.path.isdir(filepath):
+        os.makedirs(filepath)
+
+    filename = os.path.join(filepath, "matlab_matrix.mat")
+    savemat(filename, mdic)
+   
+    return mscores
+    
+
+def start_processing_coco(target, file, fixs):
+
+    df = pd.read_csv(file)
     
     display_size = {
         'salicon': (640, 480),
@@ -209,7 +287,7 @@ def start_processing(target, coco_file, coco_fixs):
     coco_gth = [read_coco_json(fl) for fl in coco_fixs ]
     df['gtruth'] = df.progress_apply(lambda x: find_coco_target(coco_gth, target, x['name_0']), axis=1)
     df['gtruth_aggr'] = df.progress_apply(lambda x: find_agg_gtruth(x['gtruth']), axis=1)
-
+      
     tdiffs = df.progress_apply(lambda x: time_diff(x['gtruth_aggr'], x['agg_res']), axis=1)
    
     diffs = df.progress_apply(lambda x: compare_agg_diff(x['gtruth_aggr'], x['agg_res']), axis=1).to_numpy()
@@ -232,7 +310,7 @@ def start_processing(target, coco_file, coco_fixs):
     multimatch_score = np.nanmean(n_arr, axis=0)
     print("done score is ", multimatch_score)
 
-   df.progress_apply(lambda x: cmp_scanmatch(target, x[columns[:-1]], x['gtruth'], x['name_0']), axis=1)
+    df.progress_apply(lambda x: cmp_scanmatch(target, x[columns[:-1]], x['gtruth'], x['name_0']), axis=1)
     
 
     nt_arr = np.empty([0, 3])
@@ -267,7 +345,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--dir", "-d", help="path to simulations")
-    parser.add_argument("--target", "-t", help="name of target probe")
+    parser.add_argument("--target", "-t", default=None,  help="name of target probe")
+    parser.add_argument("--run", "-r",  default='salicon', choices=['coco', 'salicon'], help="run for dataset")
 
     # read arguments from the command line
     args = parser.parse_args()
@@ -275,22 +354,29 @@ if __name__ == "__main__":
     target = args.target
     multimatch_score = np.empty([0, 5])
 
-    if not target:
-        for target in os.listdir(args.dir):
-            try:
-                coco_dir = os.path.join(args.dir, target)
-                coco_file = os.path.join(coco_dir, 'actr_aggr_sim_%s.csv'%(target))
-                coco_fixs = [ os.path.join('data', 'coco_search_18', f) for f in os.listdir(os.path.join('data', 'coco_search_18')) if f.endswith('.json') ]
+    if  args.run == 'salicon':
+        salicon_dir = os.path.join(args.dir)
+        salicon_file = os.path.join(salicon_dir, 'actr_aggr_sim_%s.csv'%(target))
+        salicon_fixs = os.path.join('results', 'path_gan_generated_fixations_scanmatch.mat')
+        mscores = start_processing_salicon(salicon_file, salicon_fixs)
 
-                multi_score = start_processing(target, coco_file, coco_fixs)
-                multimatch_score = np.vstack((multimatch_score, multi_score))
-                print("ovelall score ", np.mean(multimatch_score, axis=0))
-            except:
-                pass
+        plot_multimatch("Multimatch for Salicon Val", mscores, 20)
+        print("ovelall salicon score ", np.nanmean(mscores, axis=0))
     else:
-        coco_dir = os.path.join(args.dir, target)
-        coco_file = os.path.join(coco_dir, 'actr_aggr_sim_%s.csv'%(target))
-        coco_fixs = [ os.path.join('data', 'coco_search_18', f) for f in os.listdir(os.path.join('data', 'coco_search_18')) if f.endswith('.json') ]
-        start_processing(target, coco_file, coco_fixs)
-    # [2422, 2800, 2971, 4162, 4697, 1212, 4378, 790, 2768, 835, 2838, 3317, 3755, 4341, 3320, 4396, 4935, 3673, 1334, 4599, 1401, 1427, 3497, 4852, 3441, 2986, 200, 3804, 871, 2751, 774, 1156, 1488, 310, 2692, 143, 452, 4868, 2545, 1999, 2464, 998, 3054, 4797, 4160, 319, 2450, 4356, 4372, 4609]
+        if not target:
+            for target in os.listdir(args.dir):
+                try:
+                    coco_dir = os.path.join(args.dir, target)
+                    coco_file = os.path.join(coco_dir, 'actr_aggr_sim_%s.csv'%(target))
+                    coco_fixs = [ os.path.join('data', 'coco_search_18', f) for f in os.listdir(os.path.join('data', 'coco_search_18')) if f.endswith('.json') ]
 
+                    multi_score = start_processing_coco(target, coco_file, coco_fixs)
+                    multimatch_score = np.vstack((multimatch_score, multi_score))
+                    print("ovelall score ", np.mean(multimatch_score, axis=0))
+                except:
+                    pass
+        else:
+            coco_dir = os.path.join(args.dir, target)
+            coco_file = os.path.join(coco_dir, 'actr_aggr_sim_%s.csv'%(target))
+            coco_fixs = [ os.path.join('data', 'coco_search_18', f) for f in os.listdir(os.path.join('data', 'coco_search_18')) if f.endswith('.json') ]
+            start_processing_coco(target, coco_file, coco_fixs)
