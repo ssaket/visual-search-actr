@@ -277,7 +277,7 @@ if __name__ == "__main__":
     # filepath = args.path if args.path else os.path.join('data', 'salicon/detected', 'salicon_detected_objects.csv')
     filepath = args.path if args.path else os.path.join('data', 'coco_search_18/detected/bowl/concat', 'detected_objects.csv')
     # target for the actr simulation
-    target =  args.target.strip() if args.target else None
+    target =  args.target if args.target else None
     # total number of subject
     subjects = int(args.subjects) if args.subjects else 1
     # output folder for worker files
@@ -295,10 +295,16 @@ if __name__ == "__main__":
     # introduce center bias if target is present
     bias = focus if args.target else None
     # gaussian noise for encoding time and fixations for each subject
-    params = {
-        'delay': np.append(np.random.normal(0, 0.01, subjects-1), 0),
-        'fixation': np.append(np.random.normal(0, 150, subjects-1), 0),
-    }
+    if args.target:
+        params = {
+            'delay': np.append(np.random.normal(0, 0.01, subjects-1), 0),
+            'fixation': np.append(np.random.normal(0, 150, subjects-1), 0),
+        }
+    else:
+        params = {
+            'delay': np.append(np.random.normal(0, 0.01, subjects-1), 0),
+            'fixation': np.append(np.random.normal(0, 20, subjects-1), 0),
+        }
 
     root = os.path.join(outpath, 'worker')
     if not os.path.exists(root):

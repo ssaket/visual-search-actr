@@ -211,13 +211,12 @@ def start_processing_salicon( file, fixs):
 
     dt = {'names': ('start_x', 'start_y', 'duration'),'formats': ('f8', 'f8', 'f8')}
     mscores = np.empty([0, 5])
-    res_aggr = np.empty([0, 6])
-
+   
     for col in columns[0:-1]:
-        
         mgdata = df[col].to_numpy()
 
-        for i in range(len(mgdata)):
+        for i in tqdm(range(len(mgdata))):
+            res_aggr = np.empty([0, 6])
             csub = mgdata[i]  / mgdata[i].max(axis=0)
             clagg = np.zeros(csub.shape[0],  dtype=dt)
             clagg['start_x'] = csub[:,0]
@@ -250,14 +249,13 @@ def start_processing_salicon( file, fixs):
             doc = np.hstack((clagg, gtagg))
             res_aggr = np.vstack((res_aggr, doc))
     
-    
-    mdic = {"data1": res_aggr[:,[0,1,2]], "data2":  res_aggr[:,[3,4,5]], "label": "scanmatch"}
-    filepath = os.path.join('results', 'salicon')
-    if not os.path.isdir(filepath):
-        os.makedirs(filepath)
+            mdic = {"data1": res_aggr[:,[0,1,2]], "data2":  res_aggr[:,[3,4,5]], "label": "scanmatch"}
+            filepath = os.path.join('results', 'salicon', 'image_%s'%(i))
+            if not os.path.isdir(filepath):
+                os.makedirs(filepath)
 
-    filename = os.path.join(filepath, "matlab_matrix.mat")
-    savemat(filename, mdic)
+            filename = os.path.join(filepath, "matlab_matrix_%s_image_%s.mat"%(col, i))
+            savemat(filename, mdic)
    
     return mscores
     

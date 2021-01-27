@@ -55,7 +55,7 @@ conda activate base
 # python .\multiactrsim.py --path="data\\coco_search_18\\detected\\toilet\\concat\\detected_objects.csv" --target="toilet" --subjects="20"
 # python .\multiactrsim.py --path="data\\coco_search_18\\detected\\tv\\concat\\detected_objects.csv" --target="tv" --subjects="20"
 
-python .\compare.py --dir="data\\coco_search_18\\simulations"
+# python .\compare.py --dir="data\\coco_search_18\\simulations"
 # python .\compare.py --dir="data\\coco_search_18\\simulations" --target="bowl"
 # python .\compare.py --dir="data\\coco_search_18\\simulations" --target="car"
 # python .\compare.py --dir="data\\coco_search_18\\simulations" --target="chair"
@@ -84,4 +84,5 @@ python .\compare.py --dir="data\\coco_search_18\\simulations"
 # python .\concat.py --dir="data\salicon\detected\val"
 
 
-# python .\multiactrsim.py --path="data\\salicon\\detected\\val\\concat\\detected_objects.csv" --subjects="20"
+python .\multiactrsim.py --path="data\\salicon\\detected\\val\\concat\\detected_objects.csv" --subjects="20"
+# python .\compare.py --dir="data\\salicon\\simulations"
