@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import multimatch_gaze as m
 
 import scipy.io
+from scipy.io import savemat
+
 from tqdm import tqdm
 
 import warnings, argparse
@@ -38,7 +40,7 @@ def find_agg_gtruth(glst):
         pma = np.vstack((pma, x))
     return pma
 
-def compare_agg_diff(gtagg, clagg, usenorm=False):
+def compare_agg_diff(gtagg, clagg, usenorm=True):
 
     if(gtagg.size == 0):
         return 'No match'
@@ -48,11 +50,11 @@ def compare_agg_diff(gtagg, clagg, usenorm=False):
     clagg_norm = clagg / clagg.max(axis=0)
 
     if usenorm:
-        gtagg_mean = np.mean(gtagg, axis=0)
-        clagg_mean = np.mean(clagg, axis=0)
-    else:
         gtagg_mean = np.mean(gtagg_norm, axis=0)
         clagg_mean = np.mean(clagg_norm, axis=0)
+    else:
+        gtagg_mean = np.mean(gtagg, axis=0)
+        clagg_mean = np.mean(clagg, axis=0)
 
     diff = gtagg_mean - clagg_mean
     return diff.reshape(-1, 3)
@@ -85,6 +87,43 @@ def cmp_multimatch(target, row, gtruth, name, screensize, split=('train', 'valid
     # print("done")
     # plot_multimatch("Multimatch for image %s on target %s"%(name, target), res_aggr, 10)
     return res_aggr
+
+def cmp_scanmatch(target, row, gtruth, name, split=('train', 'valid')):
+
+    res_aggr = np.empty([0, 6])
+
+    for key in row.keys():
+        for obj in gtruth:
+            shape = (row[key].shape[0],3) if (row[key].shape[0] > len(obj['X'])) else (len(obj['X']), 3)
+
+            clagg = np.zeros(shape)
+            clagg.fill(0.1)
+            clagg[:row[key].shape[0],0] = row[key][:,0]
+            clagg[:row[key].shape[0],1] = row[key][:,1]
+            # convert to miliseconds
+            clagg[:row[key].shape[0],2] = row[key][:,2]*1000
+
+
+            gtagg = np.zeros(shape)
+            gtagg.fill(0.1)
+            gtagg[:len(obj['X']),0] = np.array(obj['X'])
+            gtagg[:len(obj['X']),1] = np.array(obj['Y'])
+            gtagg[:len(obj['X']),2] = np.array(obj['T'])
+
+            doc = np.hstack((clagg, gtagg))
+            res_aggr = np.vstack((res_aggr, doc))
+    
+    mdic = {"data1": res_aggr[:,[0,1,2]], "data2":  res_aggr[:,[3,4,5]], "label": "scanmatch"}
+    filepath = os.path.join('results', target)
+    if not os.path.isdir(filepath):
+        os.makedirs(filepath)
+
+    filename = os.path.join(filepath, "matlab_matrix_%s.mat"%(name.split('.')[0]))
+    savemat(filename, mdic)
+
+    return res_aggr
+
+
 
 def compare_sub_diff(target, row, gtruth, name, split=('train', 'valid')):
     
@@ -184,15 +223,25 @@ def start_processing(target, coco_file, coco_fixs):
     
     plot_result(n_arr, target)
     # df.progress_apply(lambda x: compare_sub_diff(target, x[columns[:-1]], x['gtruth'], x['name_0']), axis=1)
-    df['multimatch'] = df.progress_apply(lambda x: cmp_multimatch(target, x[columns[:-1]], x['gtruth'], x['name_0'], display_size['coco-search-18']), axis=1)
-    mps = df['multimatch'].to_numpy()
-    n_arr = np.empty([0,5])
-    for mp in mps:
-        n_arr = np.vstack((n_arr, mp))
+    # df['multimatch'] = df.progress_apply(lambda x: cmp_multimatch(target, x[columns[:-1]], x['gtruth'], x['name_0'], display_size['coco-search-18']), axis=1)
+    # mps = df['multimatch'].to_numpy()
+    # n_arr = np.empty([0,5])
+    # for mp in mps:
+    #     n_arr = np.vstack((n_arr, mp))
     
-    plot_multimatch("Multimatch for target %s for all subjects for all images"%(target), n_arr, 100)
-    multimatch_score = np.nanmean(n_arr)
-    print("done score is ", multimatch_score)
+    # plot_multimatch("Multimatch for target %s for all subjects for all images"%(target), n_arr, 100)
+    # multimatch_score = np.nanmean(n_arr)
+    # print("done score is ", multimatch_score)
+
+    df['scanmatch'] = df.progress_apply(lambda x: cmp_scanmatch(target, x[columns[:-1]], x['gtruth'], x['name_0']), axis=1)
+    # mps = df['scanmatch'].to_numpy()
+    # n_arr = np.empty([0,6])
+    # for mp in mps:
+    #     n_arr = np.vstack((n_arr, mp))
+    # from scipy.io import savemat
+    # mdic = {"data1": n_arr[:,[0,1,2]], "data2":  n_arr[:,[3,4,5]], "label": "scanmatch"}
+    # savemat("matlab_matrix.mat", mdic)
+    
 
     nt_arr = np.empty([0, 3])
     for i, arr in enumerate(tdiffs):
@@ -236,3 +285,5 @@ if __name__ == "__main__":
     coco_fixs = [ os.path.join('data', 'coco_search_18', f) for f in os.listdir(os.path.join('data', 'coco_search_18')) if f.endswith('.json') ]
 
     start_processing(target, coco_file, coco_fixs)
+
+    # [2422, 2800, 2971, 4162, 4697, 1212, 4378, 790, 2768, 835, 2838, 3317, 3755, 4341, 3320, 4396, 4935, 3673, 1334, 4599, 1401, 1427, 3497, 4852, 3441, 2986, 200, 3804, 871, 2751, 774, 1156, 1488, 310, 2692, 143, 452, 4868, 2545, 1999, 2464, 998, 3054, 4797, 4160, 319, 2450, 4356, 4372, 4609]

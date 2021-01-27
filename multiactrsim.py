@@ -281,7 +281,7 @@ if __name__ == "__main__":
     # total number of subject
     subjects = int(args.subjects) if args.subjects else 1
     # output folder for worker files
-    outpath = os.path.join(os.path.dirname(filepath), '..' ,'..' , '..', 'simulations', target)
+    outpath = os.path.join(os.path.dirname(filepath), '..' ,'..' , '..', 'simulations', target) if target else os.path.join(os.path.dirname(filepath), '..' ,'..' , '..', 'simulations')
 
     # display size of simulation 
     display_size = {
