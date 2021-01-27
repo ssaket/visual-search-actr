@@ -112,7 +112,7 @@ def cmp_scanmatch(target, row, gtruth, name, split=('train', 'valid')):
             res_aggr = np.vstack((res_aggr, doc))
     
     mdic = {"data1": res_aggr[:,[0,1,2]], "data2":  res_aggr[:,[3,4,5]], "label": "scanmatch"}
-    filepath = os.path.join('results', target)
+    filepath = os.path.join('results', 'coco-search-18', target)
     if not os.path.isdir(filepath):
         os.makedirs(filepath)
 
@@ -232,14 +232,7 @@ def start_processing(target, coco_file, coco_fixs):
     multimatch_score = np.nanmean(n_arr, axis=0)
     print("done score is ", multimatch_score)
 
-    df['scanmatch'] = df.progress_apply(lambda x: cmp_scanmatch(target, x[columns[:-1]], x['gtruth'], x['name_0']), axis=1)
-    # mps = df['scanmatch'].to_numpy()
-    # n_arr = np.empty([0,6])
-    # for mp in mps:
-    #     n_arr = np.vstack((n_arr, mp))
-    # from scipy.io import savemat
-    # mdic = {"data1": n_arr[:,[0,1,2]], "data2":  n_arr[:,[3,4,5]], "label": "scanmatch"}
-    # savemat("matlab_matrix.mat", mdic)
+   df.progress_apply(lambda x: cmp_scanmatch(target, x[columns[:-1]], x['gtruth'], x['name_0']), axis=1)
     
 
     nt_arr = np.empty([0, 3])
@@ -282,15 +275,22 @@ if __name__ == "__main__":
     target = args.target
     multimatch_score = np.empty([0, 5])
 
-    for target in os.listdir(args.dir):
+    if not target:
+        for target in os.listdir(args.dir):
+            try:
+                coco_dir = os.path.join(args.dir, target)
+                coco_file = os.path.join(coco_dir, 'actr_aggr_sim_%s.csv'%(target))
+                coco_fixs = [ os.path.join('data', 'coco_search_18', f) for f in os.listdir(os.path.join('data', 'coco_search_18')) if f.endswith('.json') ]
 
+                multi_score = start_processing(target, coco_file, coco_fixs)
+                multimatch_score = np.vstack((multimatch_score, multi_score))
+                print("ovelall score ", np.mean(multimatch_score, axis=0))
+            except:
+                pass
+    else:
         coco_dir = os.path.join(args.dir, target)
         coco_file = os.path.join(coco_dir, 'actr_aggr_sim_%s.csv'%(target))
         coco_fixs = [ os.path.join('data', 'coco_search_18', f) for f in os.listdir(os.path.join('data', 'coco_search_18')) if f.endswith('.json') ]
-
-        multi_score = start_processing(target, coco_file, coco_fixs)
-        multimatch_score = np.vstack((multimatch_score, multi_score))
-
-    print("ovelall score ", np.mean(multimatch_score, axis=0))
+        start_processing(target, coco_file, coco_fixs)
     # [2422, 2800, 2971, 4162, 4697, 1212, 4378, 790, 2768, 835, 2838, 3317, 3755, 4341, 3320, 4396, 4935, 3673, 1334, 4599, 1401, 1427, 3497, 4852, 3441, 2986, 200, 3804, 871, 2751, 774, 1156, 1488, 310, 2692, 143, 452, 4868, 2545, 1999, 2464, 998, 3054, 4797, 4160, 319, 2450, 4356, 4372, 4609]
 
