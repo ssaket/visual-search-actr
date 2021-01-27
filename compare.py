@@ -4,8 +4,6 @@ import os, ast, json
 from matplotlib import colors
 import matplotlib.pyplot as plt
 import multimatch_gaze as m
-
-import scipy.io
 from scipy.io import savemat
 
 from tqdm import tqdm
@@ -153,9 +151,10 @@ def plot_multimatch(title, mlarr, bins=20):
     plt.show()
 
 def plot_result(n_arr, target, subject='all', name='all', bins=20):
+    import matplotlib.colors as mcolors
 
     fig, ax = plt.subplots(1,3, tight_layout=True)
-    ax[0].hist2d(n_arr[:,0], n_arr[:,1])
+    ax[0].hist2d(n_arr[:,0], n_arr[:,1], norm=mcolors.PowerNorm(0.8))
     ax[0].set_title('Coordinates heatmap')
     ax[0].set_xlabel('difference in x')
     ax[0].set_ylabel('difference in y')
@@ -221,17 +220,17 @@ def start_processing(target, coco_file, coco_fixs):
             arr = arr.reshape(1,3)
             n_arr = np.vstack((n_arr, arr))
     
-    plot_result(n_arr, target)
+    # plot_result(n_arr, target)
     # df.progress_apply(lambda x: compare_sub_diff(target, x[columns[:-1]], x['gtruth'], x['name_0']), axis=1)
-    # df['multimatch'] = df.progress_apply(lambda x: cmp_multimatch(target, x[columns[:-1]], x['gtruth'], x['name_0'], display_size['coco-search-18']), axis=1)
-    # mps = df['multimatch'].to_numpy()
-    # n_arr = np.empty([0,5])
-    # for mp in mps:
-    #     n_arr = np.vstack((n_arr, mp))
+    df['multimatch'] = df.progress_apply(lambda x: cmp_multimatch(target, x[columns[:-1]], x['gtruth'], x['name_0'], display_size['coco-search-18']), axis=1)
+    mps = df['multimatch'].to_numpy()
+    n_arr = np.empty([0,5])
+    for mp in mps:
+        n_arr = np.vstack((n_arr, mp))
     
     # plot_multimatch("Multimatch for target %s for all subjects for all images"%(target), n_arr, 100)
-    # multimatch_score = np.nanmean(n_arr)
-    # print("done score is ", multimatch_score)
+    multimatch_score = np.nanmean(n_arr, axis=0)
+    print("done score is ", multimatch_score)
 
     df['scanmatch'] = df.progress_apply(lambda x: cmp_scanmatch(target, x[columns[:-1]], x['gtruth'], x['name_0']), axis=1)
     # mps = df['scanmatch'].to_numpy()
@@ -265,8 +264,9 @@ def start_processing(target, coco_file, coco_fixs):
     bottom=False,      # ticks along the bottom edge are off
     top=False,         # ticks along the top edge are off
     labelbottom=False)
+    # plt.show()
 
-    plt.show()
+    return multimatch_score
 
 
 if __name__ == "__main__":
@@ -280,10 +280,17 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     target = args.target
-    coco_dir = os.path.join(args.dir, target)
-    coco_file = os.path.join(coco_dir, 'actr_aggr_sim_%s.csv'%(target))
-    coco_fixs = [ os.path.join('data', 'coco_search_18', f) for f in os.listdir(os.path.join('data', 'coco_search_18')) if f.endswith('.json') ]
+    multimatch_score = np.empty([0, 5])
 
-    start_processing(target, coco_file, coco_fixs)
+    for target in os.listdir(args.dir):
 
+        coco_dir = os.path.join(args.dir, target)
+        coco_file = os.path.join(coco_dir, 'actr_aggr_sim_%s.csv'%(target))
+        coco_fixs = [ os.path.join('data', 'coco_search_18', f) for f in os.listdir(os.path.join('data', 'coco_search_18')) if f.endswith('.json') ]
+
+        multi_score = start_processing(target, coco_file, coco_fixs)
+        multimatch_score = np.vstack((multimatch_score, multi_score))
+
+    print("ovelall score ", np.mean(multimatch_score, axis=0))
     # [2422, 2800, 2971, 4162, 4697, 1212, 4378, 790, 2768, 835, 2838, 3317, 3755, 4341, 3320, 4396, 4935, 3673, 1334, 4599, 1401, 1427, 3497, 4852, 3441, 2986, 200, 3804, 871, 2751, 774, 1156, 1488, 310, 2692, 143, 452, 4868, 2545, 1999, 2464, 998, 3054, 4797, 4160, 319, 2450, 4356, 4372, 4609]
+
