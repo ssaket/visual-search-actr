@@ -217,16 +217,17 @@ def start_processing_salicon( file, fixs):
 
         for i in tqdm(range(len(mgdata))):
             res_aggr = np.empty([0, 6])
-            csub = mgdata[i]  / mgdata[i].max(axis=0)
+            csub = mgdata[i]
             clagg = np.zeros(csub.shape[0],  dtype=dt)
             clagg['start_x'] = csub[:,0]
             clagg['start_y'] = csub[:,1]
             clagg['duration'] = csub[:,2]
 
             cgzdata = gaze_data[i]
+            cgzdata = cgzdata[:10,:]
             gtagg =  np.zeros(cgzdata.shape[0],  dtype=dt)
-            gtagg['start_x'] = cgzdata[:,0]
-            gtagg['start_y'] = cgzdata[:,1]
+            gtagg['start_x'] = cgzdata[:,0]*640
+            gtagg['start_y'] = cgzdata[:,1]*480
             gtagg['duration'] =cgzdata[:,2]
             doc = m.docomparison(clagg, gtagg, screensize=screensize)
             mscores = np.vstack((mscores, doc))

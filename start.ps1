@@ -84,5 +84,5 @@ conda activate base
 # python .\concat.py --dir="data\salicon\detected\val"
 
 
-python .\multiactrsim.py --path="data\\salicon\\detected\\val\\concat\\detected_objects.csv" --subjects="20"
-# python .\compare.py --dir="data\\salicon\\simulations"
+# python .\multiactrsim.py --path="data\\salicon\\detected\\val\\concat\\detected_objects.csv" --subjects="20"
+python .\compare.py --dir="data\\salicon\\simulations"  --run="salicon"
