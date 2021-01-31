@@ -1,4 +1,5 @@
-mat = dir('*.mat'); 
+% ScanMatchInfo = ScanMatch_Struct();
+
 scores = size(5000, 5000);
 dirinfo = dir();
 dirinfo(~[dirinfo.isdir]) = [];  %remove non-directories
@@ -20,4 +21,4 @@ for K = 3 : length(dirinfo)
   end
 end
 tascores = nonzeros(scores);
-fprintf('total mean score = %f\n', mean(scores));
+fprintf('total mean score = %f\n', mean(tascores));

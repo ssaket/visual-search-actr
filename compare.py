@@ -243,14 +243,14 @@ def start_processing_salicon( file, fixs):
 
             gtagg = np.zeros(shape)
             gtagg.fill(0.1)
-            gtagg[:cgzdata.shape[0],0] = cgzdata[:,0]
-            gtagg[:cgzdata.shape[0],1] = cgzdata[:,1]
+            gtagg[:cgzdata.shape[0],0] = cgzdata[:,0]*640
+            gtagg[:cgzdata.shape[0],1] = cgzdata[:,1]*480
             gtagg[:cgzdata.shape[0],2] = cgzdata[:,2]
             
-            doc = np.hstack((clagg, gtagg))
-            res_aggr = np.vstack((res_aggr, doc))
+            hdoc = np.hstack((clagg, gtagg))
+            res_aggr = np.vstack((res_aggr, hdoc))
     
-            mdic = {"data1": res_aggr[:,[0,1,2]], "data2":  res_aggr[:,[3,4,5]], "label": "scanmatch"}
+            mdic = {"data1": res_aggr[:,[0,1,2]], "data2":  res_aggr[:,[3,4,5]], "multimatch":doc, "label": "scanmatch"}
             filepath = os.path.join('results', 'salicon', 'image_%s'%(i))
             if not os.path.isdir(filepath):
                 os.makedirs(filepath)
