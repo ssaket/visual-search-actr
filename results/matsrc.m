@@ -15,7 +15,7 @@ for K = 3 : length(dirinfo)
     end
     seq1 = ScanMatch_FixationToSequence(data1, ScanMatchInfo);
     seq2 = ScanMatch_FixationToSequence(data2, ScanMatchInfo);
-    score = ScanMatch(seq1, seq2, ScanMatchInfo);
+    score = ScanMatch(seq1, seq2, ScanMatchInfo, 'ShowViewer', 1);
     scores(K,q) = score;
     fprintf('score = %f\n', score);
   end

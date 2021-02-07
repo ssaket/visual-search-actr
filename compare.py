@@ -204,15 +204,10 @@ def start_processing_salicon( file, fixs):
         if len(np.where(df['name_0'] != df[names[i+1]])) == 1:
             df = df.drop(columns=[names[i+1]])
 
-    fix_mat = loadmat(fixs)
-    gaze_data = fix_mat['arr_0']
-    indices = [2422, 2800, 2971, 4162, 4697, 1212, 4378, 790, 2768, 835, 2838, 3317, 3755, 4341, 3320, 4396, 4935, 3673, 1334, 4599, 1401, 1427, 3497, 4852, 3441, 2986, 200, 3804, 871, 2751, 774, 1156, 1488, 310, 2692, 143, 452, 4868, 2545, 1999, 2464, 998, 3054, 4797, 4160, 319, 2450, 4356, 4372, 4609]
-    gaze_data = np.delete(gaze_data, indices, 0)
-
     dt = {'names': ('start_x', 'start_y', 'duration'),'formats': ('f8', 'f8', 'f8')}
     mscores = np.empty([0, 5])
    
-    for col in columns[0:-1]:
+    for col in columns[0:1]:
         mgdata = df[col].to_numpy()
 
         for i in tqdm(range(len(mgdata))):
@@ -221,42 +216,49 @@ def start_processing_salicon( file, fixs):
             clagg = np.zeros(csub.shape[0],  dtype=dt)
             clagg['start_x'] = csub[:,0]
             clagg['start_y'] = csub[:,1]
-            clagg['duration'] = csub[:,2]
+            clagg['duration'] = 1000
 
-            cgzdata = gaze_data[i]
-            cgzdata = cgzdata[:10,:]
-            gtagg =  np.zeros(cgzdata.shape[0],  dtype=dt)
-            gtagg['start_x'] = cgzdata[:,0]*640
-            gtagg['start_y'] = cgzdata[:,1]*480
-            gtagg['duration'] =cgzdata[:,2]
-            doc = m.docomparison(clagg, gtagg, screensize=screensize)
-            mscores = np.vstack((mscores, doc))
+            fix_mat = loadmat(os.path.join(fixs, df['name_0'][i].split('.')[0] + '.mat'))
+            gaze_data = fix_mat['gaze']
 
-            shape = (csub.shape[0],3 ) if (csub.shape[0] > cgzdata.shape[0]) else (cgzdata.shape[0], 3)
+            for j in range(gaze_data.shape[0]):
+                cgzdata = gaze_data[j]
+                cgzdata = cgzdata['fixations'][0]
+                if cgzdata.size == 0:
+                    continue
+                gtagg =  np.zeros(cgzdata.shape[0],  dtype=dt)
+                gtagg['start_x'] = cgzdata[:,0]
+                gtagg['start_y'] = cgzdata[:,1]
+                gtagg['duration'] = 0
+                doc = m.docomparison(clagg, gtagg, screensize=screensize)
+                if np.isnan(doc).any() == False:
+                    mscores = np.vstack((mscores, doc))
 
-            clagg = np.zeros(shape)
-            clagg.fill(0.1)
-            clagg[:csub.shape[0],0] =  csub[:,0]
-            clagg[:csub.shape[0],1] =  csub[:,1]
-            clagg[:csub.shape[0],2] =  csub[:,2]
+                shape = (csub.shape[0],3 ) if (csub.shape[0] > cgzdata.shape[0]) else (cgzdata.shape[0], 3)
+
+                clagg1 = np.zeros(shape)
+                clagg1.fill(0.1)
+                clagg1[:csub.shape[0],0] =  csub[:,0]
+                clagg1[:csub.shape[0],1] =  csub[:,1]
+                clagg1[:csub.shape[0],2] =  0
 
 
-            gtagg = np.zeros(shape)
-            gtagg.fill(0.1)
-            gtagg[:cgzdata.shape[0],0] = cgzdata[:,0]*640
-            gtagg[:cgzdata.shape[0],1] = cgzdata[:,1]*480
-            gtagg[:cgzdata.shape[0],2] = cgzdata[:,2]
-            
-            hdoc = np.hstack((clagg, gtagg))
-            res_aggr = np.vstack((res_aggr, hdoc))
-    
-            mdic = {"data1": res_aggr[:,[0,1,2]], "data2":  res_aggr[:,[3,4,5]], "multimatch":doc, "label": "scanmatch"}
-            filepath = os.path.join('results', 'salicon', 'image_%s'%(i))
-            if not os.path.isdir(filepath):
-                os.makedirs(filepath)
+                gtagg2 = np.zeros(shape)
+                gtagg2.fill(0.1)
+                gtagg2[:cgzdata.shape[0],0] = cgzdata[:,0]
+                gtagg2[:cgzdata.shape[0],1] = cgzdata[:,1]
+                gtagg2[:cgzdata.shape[0],2] = 1000
+                
+                hdoc = np.hstack((clagg1, gtagg2))
+                res_aggr = np.vstack((res_aggr, hdoc))
+        
+                mdic = {"data1": res_aggr[:,[0,1,2]], "data2":  res_aggr[:,[3,4,5]], "multimatch":doc, "label": "scanmatch"}
+                filepath = os.path.join('results', 'salicon', 'gtruth','image_%s'%(i))
+                if not os.path.isdir(filepath):
+                    os.makedirs(filepath)
 
-            filename = os.path.join(filepath, "matlab_matrix_%s_image_%s.mat"%(col, i))
-            savemat(filename, mdic)
+                filename = os.path.join(filepath, "matlab_matrix_%s_image_%s_%s.mat"%(col, i, j))
+                savemat(filename, mdic)
    
     return mscores
     
@@ -357,7 +359,9 @@ if __name__ == "__main__":
         salicon_dir = os.path.join(args.dir)
         salicon_file = os.path.join(salicon_dir, 'actr_aggr_sim_%s.csv'%(target))
         salicon_fixs = os.path.join('results', 'path_gan_generated_fixations_scanmatch.mat')
-        mscores = start_processing_salicon(salicon_file, salicon_fixs)
+
+        FIXATION_ROOT = os.path.join('data', 'salicon/fixations', 'val')
+        mscores = start_processing_salicon(salicon_file, FIXATION_ROOT)
 
         plot_multimatch("Multimatch for Salicon Val", mscores, 20)
         print("ovelall salicon score ", np.nanmean(mscores, axis=0))
