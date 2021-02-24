@@ -1,3 +1,7 @@
+#For object recognition on the COCO-SEARCH-18
+#Uncomment the following lines to generate the cvs files containing the list of objects. Here, gpuids refer to the number of processes to make inference.
+#Note: There is a risk of broken process pipe failure or any other failure if you try to run all the commands below at once by uncommenting them. 
+
 # python main.py --imgpath="data/coco_search_18/images/bowl" --gpuids="1,2,3,4,5" --outpath="data/coco_search_18/detected" --target="bowl"
 # python main.py --imgpath="data/coco_search_18/images/car" --gpuids="1,2,3,4,5" --outpath="data/coco_search_18/detected" --target="car"
 # python main.py --imgpath="data/coco_search_18/images/chair" --gpuids="1,2,3,4,5" --outpath="data/coco_search_18/detected" --target="chair"
@@ -16,6 +20,7 @@
 # python main.py --imgpath="data/coco_search_18/images/toilet" --gpuids="1,2,3,4,5" --outpath="data/coco_search_18/detected" --target="toilet"
 # python main.py --imgpath="data/coco_search_18/images/tv" --gpuids="1,2,3,4,5" --outpath="data/coco_search_18/detected" --target="tv"
 
+# uncomment the following lines to concat the files generated using multiple processes(above) into a single object file.
 
 # python ./concat.py --dir="data/coco_search_18/detected/bowl"
 # python ./concat.py --dir="data/coco_search_18/detected/car"
@@ -34,6 +39,8 @@
 # python ./concat.py --dir="data/coco_search_18/detected/stop sign"
 # python ./concat.py --dir="data/coco_search_18/detected/toilet"
 # python ./concat.py --dir="data/coco_search_18/detected/tv"
+
+#uncomment the following lines to run ACT-R simulations
 
 # python ./multiactrsim.py --path="data/coco_search_18/detected/bowl/concat/detected_objects.csv" --target="bowl" --subjects="20"
 # python ./multiactrsim.py --path="data/coco_search_18/detected/car/concat/detected_objects.csv" --target="car" --subjects="20"

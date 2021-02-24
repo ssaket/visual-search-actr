@@ -1,3 +1,5 @@
+% Run the command below in the command window to intialize the scoring
+% parameters. More details can be found on https://seis.bristol.ac.uk/~psidg/ScanMatch/#Tutorial
 % ScanMatchInfo = ScanMatch_Struct();
 
 scores = size(5000, 5000);
