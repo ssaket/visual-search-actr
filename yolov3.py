@@ -2,7 +2,7 @@ import struct
 import numpy as np
 import tensorflow as tf
 config = tf.compat.v1.ConfigProto(gpu_options = 
-                         tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=0.3)
+                         tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=0.1)
 # device_count = {'GPU': 1}
 )
 config.gpu_options.allow_growth = True

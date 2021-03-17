@@ -1,11 +1,16 @@
 data/salicon/images/**
 data/salicon/fixations/**
 data/salicon/maps/**
+data/coco_search_18/images/**
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
+results/salicon/
 *.py[cod]
 *$py.class
 .*weights
 yolov3.weights
 *.DS_Store
+.vscode
+actr_simulations.log
+*.log

@@ -3,11 +3,11 @@ import numpy as np
 import os
 
 class YoloWorker(Process):
-    def __init__(self, gpuid, queue, tdset):
+    def __init__(self, gpuid, queue, outpath):
         Process.__init__(self, name='ModelProcessor')
         self._gpuid = gpuid
         self._queue = queue
-        self._tdset = tdset
+        self._outpath = outpath
 
     def run(self):
 
@@ -22,7 +22,7 @@ class YoloWorker(Process):
 
         print('yoloV3 init done', self._gpuid)
 
-        with open('data/salicon/detected/%s/detected_objects_salicon_test_%s.csv' %(self._tdset, self._gpuid), mode='w', newline='') as image_file:
+        with open('%s/detected_objects_%s.csv' %(self._outpath, self._gpuid), mode='w', newline='') as image_file:
             image_writer = csv.writer(image_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
             while True:
                 xfile = self._queue.get()

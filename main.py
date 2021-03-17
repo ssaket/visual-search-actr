@@ -5,17 +5,17 @@ from yolov3_worker import YoloWorker
 
 
 class Scheduler:
-    def __init__(self, gpuids, tdtype):
+    def __init__(self, gpuids, outpath):
         self._queue = Queue()
         self._gpuids = gpuids
-        self.tdtype = tdtype
+        self._outpath = outpath
 
         self.__init_workers()
 
     def __init_workers(self):
         self._workers = list()
         for gpuid in self._gpuids:
-            self._workers.append(YoloWorker(gpuid, self._queue, self.tdtype))
+            self._workers.append(YoloWorker(gpuid, self._queue, self._outpath))
 
 
     def start(self, xfilelst):
@@ -57,9 +57,10 @@ def run(img_path, gpuids, tdtype):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--imgpath", help="path to your images to be proceed")
+    parser.add_argument("--imgpath", help="path to images to be proceed")
     parser.add_argument("--gpuids",  type=str, help="gpu ids to run" )
-    parser.add_argument("--type",  type=str, help="output folder, test | train | val" )
+    parser.add_argument("--outpath",  type=str, help="path to output folder" )
+    parser.add_argument("--target",  type=str, help="target for coco-search-18" )
 
     args = parser.parse_args()
 
@@ -68,8 +69,12 @@ if __name__ == "__main__":
     print(args.imgpath)
     print(gpuids)
     
-    if not args.type:
-        args.type = "default"
+    if not args.outpath:
+        args.outpath = args.imgpath
+    if args.target:
+        args.outpath = os.path.join(args.outpath, args.target)
+        if not os.path.isdir(args.outpath):
+            os.makedirs(args.outpath)
 
-    run(args.imgpath, gpuids, args.type)
+    run(args.imgpath, gpuids, args.outpath)
     
