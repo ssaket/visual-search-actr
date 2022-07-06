@@ -13,7 +13,7 @@ We will generate Scanpaths for the following datasets with the help of ACT-R's v
 
 ### Task 2 (not yet done)
 
-We will perform abalation studies on ACT-R visual search vs EMMA
+Apply on videos
 
 ## Demo
 
