@@ -1,4 +1,4 @@
-# Compare visual search results of ACT-R EMMA with SALICON and COCO-SEARCH-18 baseline models
+# Generate synthetic eye-tracking data using deep learning and ACT-R cognitive model
 
 A novel approach of devising visual search eye-tracking data using ACT-R EMMA(Salvucci, 2001). It can generate the fixation durations, object encoding time along with scanpath for all the object present in SALICON and COCO-SEARCH-18 datasets using YOLOv3 object recognition algorithm.
 
@@ -8,7 +8,7 @@ Driven by my personal interest
 
 ### Task 1
 
-Generate Scanpaths for the following datasets with the help of ACT-R's visual search module
+Generate Scanpaths for the following datasets with the help of ACT-R's visual search module and compare visual search results of ACT-R EMMA with baseline models
 
 - SALICON: Derive encoding time for all objects present in a natural scene image based on YOLO v3 categories.
 - COCO-Search-18: Derive encoding time for target search object based on 18 categories.
